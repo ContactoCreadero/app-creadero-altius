@@ -9,10 +9,11 @@ import { obraBase } from '@/lib/calc';
 import { clp } from '@/lib/format';
 
 export default function AdminPage() {
-  const { datos, cargado, modoEdicion, guardarConfig, restaurarDatosExcel } = useDatos();
+  const { datos, cargado, modoEdicion, guardarConfig, recargar } = useDatos();
   const [login, setLogin] = useState(false);
   const [c, setC] = useState<Configuracion>(datos.config);
   const [ok, setOk] = useState('');
+  const [guardando, setGuardando] = useState(false);
 
   useEffect(() => setC(datos.config), [datos.config]);
 
@@ -29,11 +30,17 @@ export default function AdminPage() {
   }
 
   const obras = [...new Set([...datos.actividades.map((a) => a.obra), ...datos.facturas.map((f) => obraBase(f.obra || f.codigo))])].sort();
+  const pagadas = datos.facturas.filter((f) => f.pagada).length;
+  const conDocumento = datos.facturas.filter((f) => f.archivo).length;
 
-  const guardar = () => {
-    guardarConfig({ ...c, valorAI: Number(c.valorAI) || 0 });
-    setOk('Cambios guardados.');
-    setTimeout(() => setOk(''), 2500);
+  const guardar = async () => {
+    setGuardando(true);
+    const exito = await guardarConfig({ ...c, valorAI: Number(c.valorAI) || 0 });
+    setGuardando(false);
+    if (exito) {
+      setOk('Cambios guardados.');
+      setTimeout(() => setOk(''), 2500);
+    }
   };
 
   return (
@@ -77,22 +84,21 @@ export default function AdminPage() {
 
       <div className="acciones-fijas">
         {ok && <span className="txt-verde">{ok}</span>}
-        <button type="button" className="btn btn-primario" onClick={guardar}>Guardar cambios</button>
+        <button type="button" className="btn btn-primario" onClick={guardar} disabled={guardando}>
+          {guardando ? 'Guardando…' : 'Guardar cambios'}
+        </button>
       </div>
 
-      <Seccion titulo="Datos" subtitulo="Versión local: los datos se guardan en este navegador hasta conectar la base de datos (Neon).">
+      <Seccion titulo="Datos" subtitulo="La información se guarda en la base de datos y la ven todos los usuarios.">
         <p>
-          Actividades registradas: <strong>{datos.actividades.length}</strong> · Facturas: <strong>{datos.facturas.length}</strong>
+          Actividades: <strong>{datos.actividades.length}</strong> · Facturas: <strong>{datos.facturas.length}</strong>
+          {' '}({pagadas} pagadas · {conDocumento} con documento)
         </p>
-        <button
-          type="button"
-          className="btn btn-peligro"
-          onClick={() => {
-            if (confirm('¿Volver a los datos originales del Excel? Se perderán los cambios y los documentos de facturas subidos en este navegador.')) restaurarDatosExcel();
-          }}
-        >
-          Restaurar datos del Excel
-        </button>
+        <p className="nota">
+          Los documentos de facturas todavía se guardan solo en el navegador donde se subieron. Al conectar Cloudflare R2
+          quedarán disponibles para todos.
+        </p>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => recargar()}>↻ Actualizar datos</button>
       </Seccion>
     </div>
   );

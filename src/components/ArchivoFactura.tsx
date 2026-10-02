@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Factura } from '@/lib/types';
 import { useDatos } from '@/components/DataProvider';
-import { TIPOS_ACEPTADOS, obtenerArchivo, subirArchivo } from '@/lib/archivos';
+import { TIPOS_ACEPTADOS, eliminarArchivo, obtenerArchivo, subirArchivo } from '@/lib/archivos';
 import { fecha } from '@/lib/format';
 
 /* eslint-disable @next/next/no-img-element */
@@ -34,7 +34,8 @@ export function ArchivoFactura({ factura }: { factura: Factura }) {
     setSubiendo(true);
     try {
       const meta = await subirArchivo(file);
-      guardarFactura({ ...factura, archivo: meta });
+      const ok = await guardarFactura({ ...factura, archivo: meta });
+      if (!ok) eliminarArchivo(meta.id);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'No se pudo subir el archivo.');
     } finally {

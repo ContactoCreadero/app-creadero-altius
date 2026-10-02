@@ -17,6 +17,19 @@ npm.cmd run dev
 
 Luego abre: http://localhost:3000
 
+## Base de datos (Neon)
+
+`.env.local` debe tener `ADMIN_PASSWORD` y `DATABASE_URL` (ver `.env.example`).
+
+Para una base de datos **nueva y vacía** (una sola vez):
+
+```powershell
+npm.cmd run db:init
+```
+
+Crea las tablas y carga los datos del Excel (`scripts/datos-excel.json`).
+Si la base ya tiene datos, no modifica nada.
+
 ## Pantallas
 
 | Sección        | Contenido                                                                 |
@@ -43,11 +56,10 @@ Luego abre: http://localhost:3000
 - Saldo por facturar = AI ejecutadas − AI facturadas (T122 / T123)
 - Balance por obra = ejecutado en la obra − facturado con sus códigos SENCE (hojas Fac)
 
-## Estado de esta versión (local)
+## Estado de esta versión
 
-- Los datos se guardan **temporalmente en el navegador** (localStorage).
-  Se reemplazará por Neon (base de datos) en una próxima iteración.
-- Los documentos de facturas se guardan en el navegador (IndexedDB). Luego: Cloudflare R2.
-- El ingreso de administrador ya se valida en el servidor; al conectar Neon, también
-  se validarán en el servidor cada guardado y eliminación.
+- Datos en Neon (tablas `configuracion`, `actividades`, `facturas`), vía rutas `/api/*`.
+- Toda modificación exige sesión de administrador, validada en el servidor.
+- Los documentos de facturas aún se guardan en el navegador donde se subieron (IndexedDB);
+  la miniatura sí queda en la base. Próximo paso: Cloudflare R2.
 - El logo de Creadero se carga desde www.creadero.cl (requiere internet).

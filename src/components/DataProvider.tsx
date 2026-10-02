@@ -1,28 +1,14 @@
 'use client';
 
 // Almacén de datos de la aplicación.
-// TEMPORAL (versión local): los datos se guardan en el navegador (localStorage) y los archivos
-// de facturas en IndexedDB. En la siguiente etapa se conectará a Neon (datos) y Cloudflare R2 (archivos).
-// El rol de administrador SÍ se valida en el servidor (/api/login, /api/session).
+// Los datos se leen y guardan en la base de datos Neon a través de las rutas /api/*.
+// Las rutas que modifican datos exigen sesión de administrador (validado en el servidor).
+// Los documentos de facturas aún se guardan en este navegador (IndexedDB) hasta conectar Cloudflare R2.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Actividad, Configuracion, Datos, Factura, Rol } from '@/lib/types';
-import { CONFIG_INICIAL, STORAGE_KEY } from '@/lib/constants';
-import { ACTIVIDADES_INICIALES, FACTURAS_INICIALES } from '@/data/seed';
-import { borrarTodosLosArchivos, eliminarArchivo } from '@/lib/archivos';
-
-const normalizarFactura = (f: Factura): Factura => ({
-  ...f,
-  pagada: f.pagada ?? false,
-  fechaPago: f.fechaPago ?? null,
-  archivo: f.archivo ?? null,
-});
-
-const DATOS_INICIALES: Datos = {
-  config: CONFIG_INICIAL,
-  actividades: ACTIVIDADES_INICIALES,
-  facturas: FACTURAS_INICIALES.map(normalizarFactura),
-};
+import { CONFIG_INICIAL } from '@/lib/constants';
+import { eliminarArchivo } from '@/lib/archivos';
 
 interface Ctx {
   datos: Datos;
@@ -32,77 +18,88 @@ interface Ctx {
   modoEdicion: boolean;
   ingresarAdmin: (password: string) => Promise<{ ok: boolean; error?: string }>;
   salirAdmin: () => Promise<void>;
-  guardarActividad: (a: Actividad) => void;
-  eliminarActividad: (id: string) => void;
-  guardarFactura: (f: Factura) => void;
-  eliminarFactura: (id: string) => void;
-  guardarConfig: (c: Configuracion) => void;
-  restaurarDatosExcel: () => void;
+  guardarActividad: (a: Actividad) => Promise<boolean>;
+  eliminarActividad: (id: string) => Promise<boolean>;
+  guardarFactura: (f: Factura) => Promise<boolean>;
+  eliminarFactura: (id: string) => Promise<boolean>;
+  guardarConfig: (c: Configuracion) => Promise<boolean>;
+  recargar: () => Promise<void>;
   nombreObra: (codigo: string) => string;
 }
 
 const DataContext = createContext<Ctx | null>(null);
 
+const VACIO: Datos = { config: CONFIG_INICIAL, actividades: [], facturas: [] };
+
+async function llamar(url: string, method: string, body?: unknown): Promise<{ ok: boolean; error?: string; [k: string]: unknown }> {
+  try {
+    const r = await fetch(url, {
+      method,
+      headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      cache: 'no-store',
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j?.ok) return { ok: false, error: j?.error || `Error ${r.status}` };
+    return j;
+  } catch {
+    return { ok: false, error: 'No se pudo conectar con el servidor' };
+  }
+}
+
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const [datos, setDatos] = useState<Datos>(DATOS_INICIALES);
+  const [datos, setDatos] = useState<Datos>(VACIO);
   const [cargado, setCargado] = useState(false);
+  const [errorCarga, setErrorCarga] = useState('');
   const [rol, setRol] = useState<Rol>('cliente');
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const g = JSON.parse(raw) as Datos;
-        if (g && Array.isArray(g.actividades) && Array.isArray(g.facturas) && g.config) {
-          setDatos({ ...g, config: { ...CONFIG_INICIAL, ...g.config }, facturas: g.facturas.map(normalizarFactura) });
-        }
-      }
-    } catch {
-      /* si falla, se usan los datos del Excel */
+  const recargar = useCallback(async () => {
+    const r = await llamar('/api/datos', 'GET');
+    if (r.ok && r.datos) {
+      const d = r.datos as Datos;
+      setDatos({ ...d, config: { ...CONFIG_INICIAL, ...d.config } });
+      setErrorCarga('');
+    } else {
+      setErrorCarga(r.error || 'No se pudieron cargar los datos');
     }
-    // Rol validado por el servidor (cookie de sesión)
-    fetch('/api/session', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((j) => setRol(j?.rol === 'admin' ? 'admin' : 'cliente'))
-      .catch(() => setRol('cliente'))
-      .finally(() => setCargado(true));
   }, []);
 
-  const persistir = useCallback((nuevo: Datos) => {
-    setDatos(nuevo);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(nuevo));
-    } catch {
-      alert('No se pudo guardar en este navegador (espacio lleno).');
-    }
-  }, []);
+  useEffect(() => {
+    Promise.all([
+      recargar(),
+      fetch('/api/session', { cache: 'no-store' })
+        .then((r) => r.json())
+        .then((j) => setRol(j?.rol === 'admin' ? 'admin' : 'cliente'))
+        .catch(() => setRol('cliente')),
+    ]).finally(() => setCargado(true));
+  }, [recargar]);
 
   const ingresarAdmin = useCallback(async (password: string) => {
-    try {
-      const r = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
-      const j = await r.json().catch(() => ({}));
-      if (r.ok && j?.ok) {
-        setRol('admin');
-        return { ok: true };
-      }
-      return { ok: false, error: j?.error || 'No se pudo ingresar' };
-    } catch {
-      return { ok: false, error: 'No se pudo conectar con el servidor' };
+    const r = await llamar('/api/login', 'POST', { password });
+    if (r.ok) {
+      setRol('admin');
+      return { ok: true };
     }
+    return { ok: false, error: r.error || 'No se pudo ingresar' };
   }, []);
 
   const salirAdmin = useCallback(async () => {
-    await fetch('/api/logout', { method: 'POST' }).catch(() => {});
+    await llamar('/api/logout', 'POST');
     setRol('cliente');
+  }, []);
+
+  /** Si el servidor rechaza por sesión vencida, vuelve a vista cliente y avisa. */
+  const resultado = useCallback((r: { ok: boolean; error?: string }) => {
+    if (r.ok) return true;
+    if (/administrador/i.test(r.error || '')) setRol('cliente');
+    alert('No se pudo guardar: ' + (r.error || 'error desconocido'));
+    return false;
   }, []);
 
   const value = useMemo<Ctx>(() => {
     const upsert = <T extends { id: string }>(lista: T[], item: T) =>
       lista.some((x) => x.id === item.id) ? lista.map((x) => (x.id === item.id ? item : x)) : [...lista, item];
+
     return {
       datos,
       cargado,
@@ -110,26 +107,56 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       modoEdicion: rol === 'admin',
       ingresarAdmin,
       salirAdmin,
-      guardarActividad: (a) => persistir({ ...datos, actividades: upsert(datos.actividades, a) }),
-      eliminarActividad: (id) => persistir({ ...datos, actividades: datos.actividades.filter((a) => a.id !== id) }),
-      guardarFactura: (f) => {
+      recargar,
+      guardarActividad: async (a) => {
+        const r = await llamar('/api/actividades', 'POST', a);
+        if (!resultado(r)) return false;
+        const guardada = r.actividad as Actividad;
+        setDatos((d) => ({ ...d, actividades: upsert(d.actividades, guardada) }));
+        return true;
+      },
+      eliminarActividad: async (id) => {
+        const r = await llamar(`/api/actividades/${encodeURIComponent(id)}`, 'DELETE');
+        if (!resultado(r)) return false;
+        setDatos((d) => ({ ...d, actividades: d.actividades.filter((a) => a.id !== id) }));
+        return true;
+      },
+      guardarFactura: async (f) => {
         const anterior = datos.facturas.find((x) => x.id === f.id);
+        const r = await llamar('/api/facturas', 'POST', f);
+        if (!resultado(r)) return false;
         if (anterior?.archivo && anterior.archivo.id !== f.archivo?.id) eliminarArchivo(anterior.archivo.id);
-        persistir({ ...datos, facturas: upsert(datos.facturas, normalizarFactura(f)) });
+        const guardada = r.factura as Factura;
+        setDatos((d) => ({ ...d, facturas: upsert(d.facturas, guardada) }));
+        return true;
       },
-      eliminarFactura: (id) => {
+      eliminarFactura: async (id) => {
         const f = datos.facturas.find((x) => x.id === id);
+        const r = await llamar(`/api/facturas/${encodeURIComponent(id)}`, 'DELETE');
+        if (!resultado(r)) return false;
         if (f?.archivo) eliminarArchivo(f.archivo.id);
-        persistir({ ...datos, facturas: datos.facturas.filter((x) => x.id !== id) });
+        setDatos((d) => ({ ...d, facturas: d.facturas.filter((x) => x.id !== id) }));
+        return true;
       },
-      guardarConfig: (c) => persistir({ ...datos, config: c }),
-      restaurarDatosExcel: () => {
-        borrarTodosLosArchivos();
-        persistir(DATOS_INICIALES);
+      guardarConfig: async (c) => {
+        const r = await llamar('/api/config', 'PUT', c);
+        if (!resultado(r)) return false;
+        setDatos((d) => ({ ...d, config: r.config as Configuracion }));
+        return true;
       },
       nombreObra: (codigo) => datos.config.nombresObras[codigo] || codigo,
     };
-  }, [datos, cargado, rol, persistir, ingresarAdmin, salirAdmin]);
+  }, [datos, cargado, rol, ingresarAdmin, salirAdmin, recargar, resultado]);
+
+  if (cargado && errorCarga) {
+    return (
+      <div className="error-carga">
+        <h2>No se pudieron cargar los datos</h2>
+        <p>{errorCarga}</p>
+        <button type="button" className="btn btn-primario" onClick={() => location.reload()}>Reintentar</button>
+      </div>
+    );
+  }
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

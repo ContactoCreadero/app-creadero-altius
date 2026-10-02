@@ -76,24 +76,27 @@ export function FormActividad({
   const [avanceTxt, setAvanceTxt] = useState(String(Math.round(inicial.avance * 1000) / 10));
   const [personasTxt, setPersonasTxt] = useState(inicial.personas == null ? '' : String(inicial.personas));
   const [error, setError] = useState('');
+  const [guardando, setGuardando] = useState(false);
 
   const obras = [...new Set([...datos.actividades.map((x) => x.obra), ...datos.facturas.map((f) => obraBase(f.obra || f.codigo))])].sort();
   const set = <K extends keyof Actividad>(k: K, v: Actividad[K]) => setA((p) => ({ ...p, [k]: v }));
 
-  const guardar = () => {
+  const guardar = async () => {
     const avance = aNumero(avanceTxt) / 100;
     if (!a.obra.trim()) return setError('Indica la obra.');
     if (!(a.aiProgramado >= 0)) return setError('AI programadas debe ser un número.');
     if (!(avance >= 0 && avance <= 1)) return setError('El % de avance debe estar entre 0 y 100.');
     const personas = personasTxt.trim() === '' ? null : Math.max(0, Math.round(aNumero(personasTxt)));
-    guardarActividad({
+    setGuardando(true);
+    const ok = await guardarActividad({
       ...a,
       obra: a.obra.trim().toUpperCase(),
       periodo: a.iniciativaId === 'mantencion' ? a.periodo : null,
       avance,
       personas,
     });
-    onCerrar();
+    setGuardando(false);
+    if (ok) onCerrar();
   };
 
   const utilizado = a.aiProgramado * (aNumero(avanceTxt) / 100);
@@ -164,8 +167,7 @@ export function FormActividad({
             className="btn btn-peligro"
             onClick={() => {
               if (confirm('¿Eliminar esta actividad? Esta acción no se puede deshacer.')) {
-                eliminarActividad(a.id);
-                onCerrar();
+                eliminarActividad(a.id).then((ok) => ok && onCerrar());
               }
             }}
           >
@@ -174,7 +176,7 @@ export function FormActividad({
         )}
         <span className="nav-spacer" />
         <button type="button" className="btn btn-ghost" onClick={onCerrar}>Cancelar</button>
-        <button type="button" className="btn btn-primario" onClick={guardar}>Guardar</button>
+        <button type="button" className="btn btn-primario" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</button>
       </div>
     </Modal>
   );
@@ -213,6 +215,7 @@ export function FormFactura({
   const [f, setF] = useState<Factura>({ pagada: false, fechaPago: null, archivo: null, ...inicial });
   const [error, setError] = useState('');
   const [subiendo, setSubiendo] = useState(false);
+  const [guardando, setGuardando] = useState(false);
   const subidosEnEsteFormulario = useRef<string[]>([]);
   const input = useRef<HTMLInputElement>(null);
   const set = <K extends keyof Factura>(k: K, v: Factura[K]) => setF((p) => ({ ...p, [k]: v }));
@@ -240,13 +243,16 @@ export function FormFactura({
     onCerrar();
   };
 
-  const guardar = () => {
+  const guardar = async () => {
     const codigo = f.codigo.trim().toUpperCase();
     if (!codigo) return setError('Indica el código (ej: ZEN2).');
     if (!(f.ai > 0)) return setError('Indica el número de AI facturadas.');
     // archivos subidos y reemplazados dentro del mismo formulario
+    setGuardando(true);
+    const ok = await guardarFactura({ ...f, codigo, obra: obraBase(codigo), fechaPago: f.pagada ? f.fechaPago : null });
+    setGuardando(false);
+    if (!ok) return;
     subidosEnEsteFormulario.current.filter((id) => id !== f.archivo?.id).forEach((id) => eliminarArchivo(id));
-    guardarFactura({ ...f, codigo, obra: obraBase(codigo), fechaPago: f.pagada ? f.fechaPago : null });
     onCerrar();
   };
 
@@ -320,8 +326,7 @@ export function FormFactura({
             className="btn btn-peligro"
             onClick={() => {
               if (confirm('¿Eliminar esta factura?')) {
-                eliminarFactura(f.id);
-                onCerrar();
+                eliminarFactura(f.id).then((ok) => ok && onCerrar());
               }
             }}
           >
@@ -330,7 +335,7 @@ export function FormFactura({
         )}
         <span className="nav-spacer" />
         <button type="button" className="btn btn-ghost" onClick={cancelar}>Cancelar</button>
-        <button type="button" className="btn btn-primario" onClick={guardar} disabled={subiendo}>Guardar</button>
+        <button type="button" className="btn btn-primario" onClick={guardar} disabled={subiendo || guardando}>{guardando ? 'Guardando…' : 'Guardar'}</button>
       </div>
     </Modal>
   );

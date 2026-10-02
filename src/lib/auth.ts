@@ -31,3 +31,8 @@ export function esTokenAdmin(valor: string | undefined): boolean {
   const t = tokenAdmin();
   return !!t && !!valor && valor === t;
 }
+
+/** ¿La solicitud viene de un administrador con sesión válida? (se usa en todas las rutas que modifican datos) */
+export function esAdmin(req: { cookies: { get(nombre: string): { value: string } | undefined } }): boolean {
+  return esTokenAdmin(req.cookies.get(COOKIE_ADMIN)?.value);
+}

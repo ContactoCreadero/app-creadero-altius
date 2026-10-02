@@ -1,13 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { esAdmin } from '@/lib/auth';
+import { esAdmin, puedeVer } from '@/lib/auth';
 import { buscarArchivoDB } from '@/lib/db';
 import { borrarArchivoR2, urlLectura } from '@/lib/r2';
-import { errorServidor, noAutorizado } from '@/lib/respuestas';
+import { errorServidor, noAutorizado, sinSesion } from '@/lib/respuestas';
 
 export const dynamic = 'force-dynamic';
 
 // Ver o descargar un documento de factura (?descargar=1). Redirige a un enlace firmado de R2 de 5 minutos.
 export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  if (!puedeVer(req)) return sinSesion();
   try {
     const { id } = await ctx.params;
     const meta = await buscarArchivoDB(id);

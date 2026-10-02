@@ -638,3 +638,95 @@ select:focus, input:focus { outline: 2px solid var(--rojo-suave); border-color: 
   text-align: center;
 }
 .error-carga p { color: var(--gris); margin: 10px 0 18px; }
+
+/* =========================================================
+   v5 · Pantalla de ingreso (Creadero / ALTIUS)
+   ========================================================= */
+.badge-cliente {
+  color: #fff;
+  background: var(--azul);
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ingreso {
+  min-height: 100vh;
+  background: var(--fondo);
+  border-top: 5px solid var(--rojo);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+.ingreso-contenido { width: 100%; max-width: 860px; }
+.ingreso-cabecera {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  margin-bottom: 32px;
+}
+.ingreso-cabecera .eyebrow { margin-top: 18px; }
+.ingreso-cabecera h1 { font-size: 1.5rem; font-weight: 600; }
+.ingreso-perfiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.perfil {
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  border-top: 4px solid var(--gris-claro);
+  transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
+  overflow: hidden;
+}
+.perfil-creadero { border-top-color: var(--rojo); }
+.perfil-altius { border-top-color: var(--azul); }
+.perfil:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(43, 43, 43, 0.1); }
+.perfil.activo.perfil-creadero { border-color: var(--rojo); box-shadow: 0 0 0 3px var(--rojo-suave); }
+.perfil.activo.perfil-altius { border-color: var(--azul); box-shadow: 0 0 0 3px var(--azul-suave); }
+.perfil-boton {
+  width: 100%;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: 24px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.perfil-logo { height: 52px; display: flex; align-items: center; }
+.perfil-texto { display: flex; flex-direction: column; gap: 4px; }
+.perfil-texto strong { font-size: 1.2rem; color: var(--carbon); }
+.perfil-rol {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 99px;
+  padding: 2px 10px;
+}
+.perfil-creadero .perfil-rol { background: var(--rojo-suave); color: var(--rojo-oscuro); }
+.perfil-altius .perfil-rol { background: var(--azul-suave); color: var(--azul); }
+.perfil-form {
+  border-top: 1px solid var(--borde);
+  padding: 16px 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #fcfbfa;
+}
+.perfil-form .btn { justify-content: center; padding: 10px 16px; }
+.perfil-altius .perfil-form .btn-primario { background: var(--azul); }
+.perfil-altius .perfil-form .btn-primario:hover { background: #1c2563; }
+.ingreso-pie { text-align: center; margin-top: 32px; }
+@media (max-width: 680px) {
+  .ingreso-perfiles { grid-template-columns: 1fr; }
+  .ingreso-cabecera h1 { font-size: 1.2rem; }
+}
+.perfil-altius input:focus { outline-color: var(--azul-suave); border-color: var(--azul); }

@@ -1,22 +1,25 @@
 'use client';
 
-// Almacén de datos de la aplicación.
-// Los datos se leen y guardan en la base de datos Neon a través de las rutas /api/*.
-// Las rutas que modifican datos exigen sesión de administrador (validado en el servidor).
-// Los documentos de facturas se guardan en Cloudflare R2 (el servidor borra los reemplazados o eliminados).
+// Almacén de datos y sesión de la aplicación.
+// • Sesión: Creadero (administrador) o Altius (visualización), validada en el servidor (/api/session, /api/login).
+//   Sin sesión se muestra la pantalla de ingreso y no se cargan datos.
+// • Datos: base de datos Neon a través de las rutas /api/* (las que modifican exigen administrador).
+// • Documentos de facturas: Cloudflare R2.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Actividad, Configuracion, Datos, Factura, Rol } from '@/lib/types';
 import { CONFIG_INICIAL } from '@/lib/constants';
+import PantallaIngreso from '@/components/PantallaIngreso';
+
+export type UsuarioIngreso = 'creadero' | 'altius';
 
 interface Ctx {
   datos: Datos;
   cargado: boolean;
   rol: Rol;
-  /** true cuando el usuario ingresó como administrador */
+  /** true cuando ingresó Creadero (administrador) */
   modoEdicion: boolean;
-  ingresarAdmin: (password: string) => Promise<{ ok: boolean; error?: string }>;
-  salirAdmin: () => Promise<void>;
+  salir: () => Promise<void>;
   guardarActividad: (a: Actividad) => Promise<boolean>;
   eliminarActividad: (id: string) => Promise<boolean>;
   guardarFactura: (f: Factura) => Promise<boolean>;
@@ -30,7 +33,7 @@ const DataContext = createContext<Ctx | null>(null);
 
 const VACIO: Datos = { config: CONFIG_INICIAL, actividades: [], facturas: [] };
 
-async function llamar(url: string, method: string, body?: unknown): Promise<{ ok: boolean; error?: string; [k: string]: unknown }> {
+async function llamar(url: string, method: string, body?: unknown): Promise<{ ok: boolean; error?: string; status?: number; [k: string]: unknown }> {
   try {
     const r = await fetch(url, {
       method,
@@ -39,7 +42,7 @@ async function llamar(url: string, method: string, body?: unknown): Promise<{ ok
       cache: 'no-store',
     });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok || !j?.ok) return { ok: false, error: j?.error || `Error ${r.status}` };
+    if (!r.ok || !j?.ok) return { ok: false, status: r.status, error: j?.error || `Error ${r.status}` };
     return j;
   } catch {
     return { ok: false, error: 'No se pudo conectar con el servidor' };
@@ -50,7 +53,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [datos, setDatos] = useState<Datos>(VACIO);
   const [cargado, setCargado] = useState(false);
   const [errorCarga, setErrorCarga] = useState('');
-  const [rol, setRol] = useState<Rol>('cliente');
+  const [rol, setRol] = useState<Rol | null>(null);
+  const [sesionRevisada, setSesionRevisada] = useState(false);
+  const [altiusRequierePassword, setAltiusRequierePassword] = useState(true);
 
   const recargar = useCallback(async () => {
     const r = await llamar('/api/datos', 'GET');
@@ -58,42 +63,65 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const d = r.datos as Datos;
       setDatos({ ...d, config: { ...CONFIG_INICIAL, ...d.config } });
       setErrorCarga('');
+    } else if (r.status === 401) {
+      setRol(null); // la sesión venció
     } else {
       setErrorCarga(r.error || 'No se pudieron cargar los datos');
     }
   }, []);
 
-  useEffect(() => {
-    Promise.all([
-      recargar(),
-      fetch('/api/session', { cache: 'no-store' })
-        .then((r) => r.json())
-        .then((j) => setRol(j?.rol === 'admin' ? 'admin' : 'cliente'))
-        .catch(() => setRol('cliente')),
-    ]).finally(() => setCargado(true));
-  }, [recargar]);
+  // 1) ¿Quién ingresó?
+  const revisarSesion = useCallback(async () => {
+    try {
+      const j = await fetch('/api/session', { cache: 'no-store' }).then((r) => r.json());
+      setAltiusRequierePassword(j?.altiusRequierePassword !== false);
+      setRol(j?.rol === 'admin' || j?.rol === 'cliente' ? j.rol : null);
+    } catch {
+      setRol(null);
+    } finally {
+      setSesionRevisada(true);
+    }
+  }, []);
 
-  const ingresarAdmin = useCallback(async (password: string) => {
-    const r = await llamar('/api/login', 'POST', { password });
+  useEffect(() => {
+    revisarSesion();
+  }, [revisarSesion]);
+
+  // 2) Con sesión, cargar los datos
+  useEffect(() => {
+    if (!rol) {
+      setCargado(false);
+      return;
+    }
+    setCargado(false);
+    recargar().finally(() => setCargado(true));
+  }, [rol, recargar]);
+
+  const ingresar = useCallback(async (usuario: UsuarioIngreso, password: string) => {
+    const r = await llamar('/api/login', 'POST', { usuario, password });
     if (r.ok) {
-      setRol('admin');
+      setRol(r.rol === 'admin' ? 'admin' : 'cliente');
       return { ok: true };
     }
     return { ok: false, error: r.error || 'No se pudo ingresar' };
   }, []);
 
-  const salirAdmin = useCallback(async () => {
+  const salir = useCallback(async () => {
     await llamar('/api/logout', 'POST');
-    setRol('cliente');
+    setDatos(VACIO);
+    setRol(null);
   }, []);
 
-  /** Si el servidor rechaza por sesión vencida, vuelve a vista cliente y avisa. */
-  const resultado = useCallback((r: { ok: boolean; error?: string }) => {
-    if (r.ok) return true;
-    if (/administrador/i.test(r.error || '')) setRol('cliente');
-    alert('No se pudo guardar: ' + (r.error || 'error desconocido'));
-    return false;
-  }, []);
+  /** Resultado de una operación de guardado. Si la sesión de administrador venció, vuelve a revisar la sesión. */
+  const resultado = useCallback(
+    (r: { ok: boolean; error?: string; status?: number }) => {
+      if (r.ok) return true;
+      alert('No se pudo guardar: ' + (r.error || 'error desconocido'));
+      if (r.status === 401) revisarSesion();
+      return false;
+    },
+    [revisarSesion],
+  );
 
   const value = useMemo<Ctx>(() => {
     const upsert = <T extends { id: string }>(lista: T[], item: T) =>
@@ -102,10 +130,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return {
       datos,
       cargado,
-      rol,
+      rol: rol ?? 'cliente',
       modoEdicion: rol === 'admin',
-      ingresarAdmin,
-      salirAdmin,
+      salir,
       recargar,
       guardarActividad: async (a) => {
         const r = await llamar('/api/actividades', 'POST', a);
@@ -141,7 +168,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       },
       nombreObra: (codigo) => datos.config.nombresObras[codigo] || codigo,
     };
-  }, [datos, cargado, rol, ingresarAdmin, salirAdmin, recargar, resultado]);
+  }, [datos, cargado, rol, salir, recargar, resultado]);
+
+  // Aún revisando la sesión
+  if (!sesionRevisada) return <div className="cargando">Cargando…</div>;
+
+  // Sin sesión: pantalla de ingreso (Creadero / Altius)
+  if (!rol) return <PantallaIngreso ingresar={ingresar} altiusRequierePassword={altiusRequierePassword} />;
 
   if (cargado && errorCarga) {
     return (

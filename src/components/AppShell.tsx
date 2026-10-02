@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useDatos } from '@/components/DataProvider';
 import { LogoAltius, LogoCreadero } from '@/components/Logos';
-import LoginAdmin from '@/components/LoginAdmin';
 import { fechaLarga } from '@/lib/format';
 
 const NAV = [
@@ -17,8 +15,7 @@ const NAV = [
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { datos, modoEdicion, salirAdmin } = useDatos();
-  const [login, setLogin] = useState(false);
+  const { datos, modoEdicion, salir } = useDatos();
   const items = modoEdicion ? [...NAV, { href: '/admin', label: 'Administración' }] : NAV;
 
   const activo = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
@@ -53,23 +50,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => window.print()}>
             🖨️ Imprimir / PDF
           </button>
-          {modoEdicion ? (
-            <>
-              <span className="badge-admin">👤 Administrador</span>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => salirAdmin()}>Salir</button>
-            </>
-          ) : (
-            <button type="button" className="btn btn-primario btn-sm" onClick={() => setLogin(true)}>
-              🔐 Ingresar como administrador
-            </button>
-          )}
+          <span className={modoEdicion ? 'badge-admin' : 'badge-cliente'}>
+            {modoEdicion ? '👤 Creadero · Administrador' : '👤 ALTIUS · Visualización'}
+          </span>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => salir()} title="Cerrar sesión y volver a la pantalla de ingreso">
+            Salir
+          </button>
         </div>
       </nav>
 
       {modoEdicion && (
         <div className="banner-edicion no-print">
           <strong>Modo administrador.</strong> Puedes agregar, editar, duplicar y eliminar información y subir facturas.
-          Versión local: los cambios se guardan en este navegador.
+          Los cambios quedan visibles de inmediato para ALTIUS.
         </div>
       )}
 
@@ -83,8 +76,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <span>{modoEdicion ? 'Vista administrador' : 'Vista cliente (solo lectura)'}</span>
         </div>
       </footer>
-
-      {login && <LoginAdmin onCerrar={() => setLogin(false)} />}
     </div>
   );
 }

@@ -19,7 +19,7 @@ Luego abre: http://localhost:3000
 
 ## Base de datos (Neon)
 
-`.env.local` debe tener `ADMIN_PASSWORD`, `DATABASE_URL` y las variables `R2_*` (ver `.env.example`).
+`.env.local` debe tener `ADMIN_PASSWORD`, `ALTIUS_PASSWORD`, `DATABASE_URL` y las variables `R2_*` (ver `.env.example`).
 
 Para una base de datos **nueva y vacía** (una sola vez):
 
@@ -40,13 +40,16 @@ Si la base ya tiene datos, no modifica nada.
 | Facturación    | Ejecutado vs facturado, balance por obra, listado de facturas             |
 | Administración | Parámetros (valor AI, fecha de corte), nombres de obras, restaurar datos   |
 
-## Roles
+## Usuarios
 
-- **Cliente (visualizador):** vista por defecto, solo lectura.
-- **Administrador:** botón "🔐 Ingresar como administrador". La contraseña se define en
-  `.env.local` (variable `ADMIN_PASSWORD`) y se valida en el servidor (`/api/login`).
-  Permite agregar, editar (✏️), duplicar (⧉) y eliminar (🗑️) actividades y facturas,
-  subir el documento de cada factura (imagen o PDF) y marcarla como pagada / no pagada.
+La página de inicio muestra dos perfiles. Sin ingresar no se ve ningún dato (la API también lo exige).
+
+- **Creadero (Administrador):** contraseña `ADMIN_PASSWORD`. Agrega, edita (✏️), duplica (⧉) y
+  elimina (🗑️) actividades y facturas, sube documentos y marca pagos. Sesión de 12 horas.
+- **ALTIUS (Visualización):** contraseña `ALTIUS_PASSWORD` (opcional; si no se define, entra sin
+  contraseña). Solo lectura. Sesión de 30 días.
+
+Las contraseñas se validan en el servidor (`/api/login`) y la sesión queda en una cookie segura.
 
 ## Fórmulas replicadas del Excel
 

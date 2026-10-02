@@ -3,14 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useDatos } from '@/components/DataProvider';
 import { Cargando, Seccion } from '@/components/UI';
-import LoginAdmin from '@/components/LoginAdmin';
 import type { Configuracion } from '@/lib/types';
 import { obraBase } from '@/lib/calc';
 import { clp } from '@/lib/format';
 
 export default function AdminPage() {
-  const { datos, cargado, modoEdicion, guardarConfig, recargar } = useDatos();
-  const [login, setLogin] = useState(false);
+  const { datos, cargado, modoEdicion, guardarConfig, recargar, salir } = useDatos();
   const [c, setC] = useState<Configuracion>(datos.config);
   const [ok, setOk] = useState('');
   const [guardando, setGuardando] = useState(false);
@@ -21,10 +19,10 @@ export default function AdminPage() {
   if (!modoEdicion) {
     return (
       <div className="pagina">
-        <Seccion titulo="Administración" subtitulo="Sección de uso interno de Creadero.">
-          <button type="button" className="btn btn-primario" onClick={() => setLogin(true)}>🔐 Ingresar como administrador</button>
+        <Seccion titulo="Administración" subtitulo="Sección de uso exclusivo de Creadero.">
+          <p>Para administrar, sal e ingresa con el perfil <strong>Creadero (Administrador)</strong>.</p>
+          <button type="button" className="btn btn-primario" onClick={() => salir()}>Cambiar de usuario</button>
         </Seccion>
-        {login && <LoginAdmin onCerrar={() => setLogin(false)} />}
       </div>
     );
   }

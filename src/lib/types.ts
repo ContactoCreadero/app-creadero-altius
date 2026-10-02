@@ -57,6 +57,7 @@ export interface ArchivoMeta {
   miniatura: string; // imagen pequeña (data URL JPEG) para la vista previa
 }
 
+/** cliente = ALTIUS (visualización) · admin = Creadero (administrador) */
 export type Rol = 'cliente' | 'admin';
 
 export interface Configuracion {

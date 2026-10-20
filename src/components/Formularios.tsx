@@ -69,7 +69,7 @@ export function FormActividad({
   modo?: ModoFormulario;
   onCerrar: () => void;
 }) {
-  const { datos, guardarActividad, eliminarActividad, nombreObra } = useDatos();
+  const { datosCompletos: datos, guardarActividad, eliminarActividad, nombreObra } = useDatos();
   const existe = datos.actividades.some((a) => a.id === inicial.id);
   const m: ModoFormulario = modo ?? (existe ? 'editar' : 'nuevo');
   const [a, setA] = useState<Actividad>(inicial);
@@ -209,7 +209,7 @@ export function FormFactura({
   modo?: ModoFormulario;
   onCerrar: () => void;
 }) {
-  const { datos, guardarFactura, eliminarFactura } = useDatos();
+  const { datosCompletos: datos, guardarFactura, eliminarFactura } = useDatos();
   const existe = datos.facturas.some((f) => f.id === inicial.id);
   const m: ModoFormulario = modo ?? (existe ? 'editar' : 'nuevo');
   const [f, setF] = useState<Factura>({ pagada: false, fechaPago: null, archivo: null, ...inicial });

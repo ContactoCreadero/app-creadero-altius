@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useDatos } from '@/components/DataProvider';
 import { Cargando, Kpi, Leyenda, Seccion } from '@/components/UI';
 import TablaFacturas from '@/components/TablaFacturas';
+import { ChipEmpresa } from '@/components/EmpresaUI';
 import { FormFactura, nuevaFactura } from '@/components/Formularios';
 import type { Factura } from '@/lib/types';
 import { calcularResumen, desgloseSaldo, porObra } from '@/lib/calc';
@@ -59,6 +60,7 @@ export default function FacturacionPage() {
             <thead>
               <tr>
                 <th>Obra</th>
+                <th>Empresa</th>
                 <th className="num">AI ejecutadas</th>
                 <th className="num">AI facturadas</th>
                 <th className="num">Diferencia AI</th>
@@ -70,6 +72,7 @@ export default function FacturacionPage() {
               {obras.map((o) => (
                 <tr key={o.obra}>
                   <td><Link className="link-obra" href={`/obras/${encodeURIComponent(o.obra)}`}>{nombreObra(o.obra)}</Link></td>
+                  <td><ChipEmpresa obra={o.obra} /></td>
                   <td className="num">{num(o.utilizadoAI)}</td>
                   <td className="num">{o.facturadoAI ? num(o.facturadoAI) : '—'}</td>
                   <td className="num"><strong>{num(o.diferenciaAI)}</strong></td>
@@ -84,7 +87,7 @@ export default function FacturacionPage() {
             </tbody>
             <tfoot>
               <tr>
-                <td>Total</td>
+                <td colSpan={2}>Total</td>
                 <td className="num">{num(r.utilizadoAI)}</td>
                 <td className="num">{num(r.facturadoAI)}</td>
                 <td className="num">{num(r.saldoAI)}</td>

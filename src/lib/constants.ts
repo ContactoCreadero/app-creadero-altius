@@ -1,4 +1,4 @@
-import type { Configuracion, Iniciativa, IniciativaId } from '@/lib/types';
+import type { Configuracion, Empresa, Iniciativa, IniciativaId } from '@/lib/types';
 
 export const INICIATIVAS: Iniciativa[] = [
   {
@@ -48,6 +48,33 @@ export const MESES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 
+/* ---------------- Empresas ALTIUS ---------------- */
+
+export const EMPRESAS: { id: Empresa; nombre: string; nombreLargo: string }[] = [
+  { id: 'SpA', nombre: 'SpA', nombreLargo: 'ALTIUS SpA' },
+  { id: 'SA', nombre: 'S.A.', nombreLargo: 'ALTIUS S.A.' },
+  { id: 'Corporativo', nombre: 'Corporativo', nombreLargo: 'Corporativo' },
+];
+
+export const NOMBRE_EMPRESA: Record<Empresa, string> = { SpA: 'SpA', SA: 'S.A.', Corporativo: 'Corporativo' };
+export const NOMBRE_LARGO_EMPRESA: Record<Empresa, string> = { SpA: 'ALTIUS SpA', SA: 'ALTIUS S.A.', Corporativo: 'Corporativo' };
+
+/**
+ * Clasificación inicial de obras por empresa (entregada por el usuario el 20-10-2026).
+ * Lo que se guarde en Administración tiene prioridad sobre esta lista.
+ * FRA es la misma obra que FRAY. CORPORATIVO (Curso Rigger) va aparte de ambas empresas.
+ */
+export const EMPRESAS_OBRAS_INICIAL: Record<string, Empresa> = {
+  // SpA
+  ASF: 'SpA', SAP: 'SpA', BST: 'SpA', MIR: 'SpA', JAC: 'SpA', THCH: 'SpA',
+  FRAY: 'SpA', FRA: 'SpA', MER: 'SpA', EGV: 'SpA', SIL: 'SpA',
+  // S.A.
+  SOLANAS: 'SA', BECA: 'SA', OLI: 'SA', SOL: 'SA', CON: 'SA', FUR: 'SA',
+  VIL: 'SA', SAB: 'SA', BSF: 'SA', ZEN: 'SA', MAC: 'SA', TUC: 'SA',
+  // Aparte
+  CORPORATIVO: 'Corporativo',
+};
+
 export const CONFIG_INICIAL: Configuracion = {
   cliente: 'ALTIUS Constructora',
   programa: 'Programa de Capacitación 2026 · Red ALTIUS',
@@ -56,6 +83,7 @@ export const CONFIG_INICIAL: Configuracion = {
   fechaCorte: '2026-09-30',
   // Nombres completos de obra: el Excel solo trae códigos. Se pueden completar en Administración.
   nombresObras: {},
+  empresasObras: {},
 };
 
 // Logo Creadero: se usa el logo publicado en www.creadero.cl.
@@ -64,3 +92,4 @@ export const LOGO_CREADERO =
   'https://static.wixstatic.com/media/129ed2_c724759518b34c6cb625dd7b836e061f~mv2.png/v1/fit/w_760,h_170,al_c,q_95/logo-creadero.png';
 
 export const STORAGE_KEY = 'creadero-altius-datos-v1';
+export const STORAGE_FILTRO_EMPRESA = 'creadero-altius-filtro-empresa';

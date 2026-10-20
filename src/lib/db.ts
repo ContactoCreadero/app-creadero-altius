@@ -167,6 +167,14 @@ export function validarConfig(x: unknown): Configuracion {
       if (nombre) nombres[texto(k, 40).toUpperCase()] = nombre;
     }
   }
+  // Clasificación de obras por empresa (SpA / SA / Corporativo). Una obra ausente queda "sin clasificar".
+  const empresas: Record<string, 'SpA' | 'SA' | 'Corporativo'> = {};
+  if (c.empresasObras && typeof c.empresasObras === 'object') {
+    for (const [k, v] of Object.entries(c.empresasObras as Record<string, unknown>).slice(0, 300)) {
+      const codigo = texto(k, 40).toUpperCase();
+      if (codigo && (v === 'SpA' || v === 'SA' || v === 'Corporativo')) empresas[codigo] = v;
+    }
+  }
   const fechaCorte = fechaONull(c.fechaCorte);
   if (!fechaCorte) throw new Error('Fecha de corte inválida');
   return {
@@ -176,6 +184,7 @@ export function validarConfig(x: unknown): Configuracion {
     valorAI: numero(c.valorAI, 0, 100_000_000),
     fechaCorte,
     nombresObras: nombres,
+    empresasObras: empresas,
   };
 }
 

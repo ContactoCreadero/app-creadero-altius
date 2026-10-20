@@ -51,6 +51,18 @@ La página de inicio muestra dos perfiles. Sin ingresar no se ve ningún dato (l
 
 Las contraseñas se validan en el servidor (`/api/login`) y la sesión queda en una cookie segura.
 
+## Empresas (ALTIUS SpA / ALTIUS S.A. / Corporativo)
+
+Cada obra pertenece a una empresa. La barra **Empresa: Todas · SpA · S.A. · Corporativo** (visible en
+todas las pantallas, para ambos perfiles) filtra toda la app: indicadores, gráficos, tablas, saldo
+por facturar y facturas se calculan solo con las obras de esa empresa. Con "Todas", el Resumen
+muestra el cuadro comparativo por empresa.
+
+- Clasificación inicial en `src/lib/constants.ts` (`EMPRESAS_OBRAS_INICIAL`).
+- Creadero la puede cambiar en **Administración → Obras: nombre y empresa**; lo guardado queda en
+  `configuracion.datos.empresasObras` (Neon) y tiene prioridad sobre la lista inicial.
+- Una obra con datos y sin empresa aparece como "Sin clasificar" (y se agrega esa opción al filtro).
+
 ## Fórmulas replicadas del Excel
 
 - AI utilizadas = AI programadas × % avance  (columna J = H × I)

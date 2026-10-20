@@ -6,6 +6,7 @@ import type { Factura } from '@/lib/types';
 import { nuevoId, useDatos } from '@/components/DataProvider';
 import { FormFactura } from '@/components/Formularios';
 import { ArchivoFactura, EstadoPago } from '@/components/ArchivoFactura';
+import { ChipEmpresa } from '@/components/EmpresaUI';
 import { obraBase } from '@/lib/calc';
 import { clp, fecha, num } from '@/lib/format';
 
@@ -51,7 +52,7 @@ export default function TablaFacturas({ facturas, mostrarObra = false }: { factu
                 <td><ArchivoFactura factura={f} /></td>
                 <td className="nowrap">{fecha(f.fecha)}</td>
                 {mostrarObra && (
-                  <td><Link className="link-obra" href={`/obras/${encodeURIComponent(obraBase(f.obra || f.codigo))}`}>{nombreObra(obraBase(f.obra || f.codigo))}</Link></td>
+                  <td><Link className="link-obra" href={`/obras/${encodeURIComponent(obraBase(f.obra || f.codigo))}`}>{nombreObra(obraBase(f.obra || f.codigo))}</Link><div><ChipEmpresa obra={f.obra || f.codigo} /></div></td>
                 )}
                 <td>{f.codigo}</td>
                 <td>{f.codigoSence || '—'}</td>

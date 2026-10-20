@@ -730,3 +730,103 @@ select:focus, input:focus { outline: 2px solid var(--rojo-suave); border-color: 
   .ingreso-cabecera h1 { font-size: 1.2rem; }
 }
 .perfil-altius input:focus { outline-color: var(--azul-suave); border-color: var(--azul); }
+
+/* =========================================================
+   v6 · Clasificación por empresa (SpA / S.A. / Corporativo)
+   ========================================================= */
+.barra-empresa { background: var(--blanco); border-bottom: 1px solid var(--borde); }
+.barra-empresa-inner {
+  max-width: var(--ancho);
+  margin: 0 auto;
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.selector-empresa {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 99px;
+  padding: 3px;
+}
+.selector-empresa-etiqueta {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gris);
+  padding: 0 8px 0 10px;
+}
+.selector-empresa-opcion {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--texto);
+  padding: 5px 14px;
+  border-radius: 99px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.selector-empresa-opcion:hover { background: #ebe7e3; }
+.selector-empresa-opcion.activa { background: var(--carbon); color: #fff; }
+.corte-empresa { color: var(--rojo-oscuro); }
+
+.chip-empresa {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  vertical-align: middle;
+  border: 1px solid transparent;
+}
+.chip-empresa-SpA { background: #eef0f8; color: var(--azul); border-color: #d5d9ee; }
+.chip-empresa-SA { background: #f3f1ee; color: var(--carbon); border-color: #ddd8d2; }
+.chip-empresa-Corporativo { background: var(--rojo-suave); color: var(--rojo-oscuro); border-color: #f3c9cc; }
+.chip-empresa-sin { background: var(--ambar-suave); color: #8a6200; border-color: #f0dc9c; }
+.obra-card-cabecera h3 .chip-empresa { margin-left: 6px; font-size: 0.68rem; }
+.tabla td .chip-empresa { margin-top: 2px; }
+
+.grupo-empresa { display: flex; flex-direction: column; gap: 12px; }
+.grupo-empresa-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-bottom: 2px solid var(--borde);
+  padding-bottom: 6px;
+}
+.grupo-empresa-cabecera h2 { font-size: 1.05rem; }
+
+.fila-clic { cursor: pointer; }
+.fila-clic:hover td { background: #f8f5f2; }
+.tabla-empresas td:first-child { white-space: nowrap; }
+
+.tabla-obras-admin select, .tabla-obras-admin input { width: 100%; min-width: 150px; }
+.tabla-obras-admin td:last-child { white-space: nowrap; }
+.fila-alerta td { background: #fffaf0; }
+.aviso-sin-clasificar {
+  background: var(--ambar-suave);
+  border: 1px solid #f0dc9c;
+  color: #6b5200;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  margin: 0 0 12px;
+}
+@media (max-width: 720px) {
+  .barra-empresa-inner { padding: 8px 12px; }
+  .selector-empresa { flex-wrap: wrap; border-radius: 12px; }
+}
+@media print {
+  .barra-empresa { display: none !important; }
+}

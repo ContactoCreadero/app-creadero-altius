@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useDatos } from '@/components/DataProvider';
 import { LogoAltius, LogoCreadero } from '@/components/Logos';
+import { SelectorEmpresa, textoFiltroEmpresa } from '@/components/EmpresaUI';
 import { fechaLarga } from '@/lib/format';
 
 const NAV = [
@@ -15,7 +16,7 @@ const NAV = [
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { datos, modoEdicion, salir } = useDatos();
+  const { datos, modoEdicion, salir, filtroEmpresa } = useDatos();
   const items = modoEdicion ? [...NAV, { href: '/admin', label: 'Administración' }] : NAV;
 
   const activo = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
@@ -30,7 +31,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="cabecera-titulo">
             <span className="eyebrow">Estado de avance</span>
             <h1>{datos.config.programa}</h1>
-            <span className="corte">Información al {fechaLarga(datos.config.fechaCorte)}</span>
+            <span className="corte">
+              Información al {fechaLarga(datos.config.fechaCorte)}
+              {filtroEmpresa !== 'todas' && <strong className="corte-empresa"> · {textoFiltroEmpresa(filtroEmpresa)}</strong>}
+            </span>
           </div>
           <div className="cabecera-cliente">
             <span className="eyebrow">Cliente</span>
@@ -58,6 +62,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </nav>
+
+      <div className="barra-empresa no-print">
+        <div className="barra-empresa-inner">
+          <SelectorEmpresa />
+          {filtroEmpresa !== 'todas' && (
+            <span className="muted small">Mostrando solo {textoFiltroEmpresa(filtroEmpresa)}. Todos los totales consideran solo esas obras.</span>
+          )}
+        </div>
+      </div>
 
       {modoEdicion && (
         <div className="banner-edicion no-print">

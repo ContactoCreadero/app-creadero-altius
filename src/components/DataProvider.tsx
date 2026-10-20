@@ -5,16 +5,29 @@
 //   Sin sesión se muestra la pantalla de ingreso y no se cargan datos.
 // • Datos: base de datos Neon a través de las rutas /api/* (las que modifican exigen administrador).
 // • Documentos de facturas: Cloudflare R2.
+// • Filtro de empresa (Todas / SpA / S.A. / Corporativo): se aplica aquí una sola vez, así todas las pantallas
+//   reciben en `datos` solo las actividades y facturas de las obras de esa empresa.
+//   `datosCompletos` mantiene todo (lo usan Administración y el detalle de una obra).
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import type { Actividad, Configuracion, Datos, Factura, Rol } from '@/lib/types';
-import { CONFIG_INICIAL } from '@/lib/constants';
+import type { Actividad, Configuracion, Datos, Empresa, Factura, FiltroEmpresa, Rol } from '@/lib/types';
+import { CONFIG_INICIAL, EMPRESAS_OBRAS_INICIAL, STORAGE_FILTRO_EMPRESA } from '@/lib/constants';
+import { obraBase } from '@/lib/calc';
 import PantallaIngreso from '@/components/PantallaIngreso';
 
 export type UsuarioIngreso = 'creadero' | 'altius';
 
 interface Ctx {
+  /** Datos filtrados por la empresa elegida (lo que usan las pantallas) */
   datos: Datos;
+  /** Todos los datos, sin filtro de empresa */
+  datosCompletos: Datos;
+  filtroEmpresa: FiltroEmpresa;
+  setFiltroEmpresa: (f: FiltroEmpresa) => void;
+  /** Empresa de una obra (null = sin clasificar) */
+  empresaDeObra: (codigo: string) => Empresa | null;
+  /** Clasificación vigente código → empresa */
+  empresasObras: Record<string, Empresa>;
   cargado: boolean;
   rol: Rol;
   /** true cuando ingresó Creadero (administrador) */
@@ -56,6 +69,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [rol, setRol] = useState<Rol | null>(null);
   const [sesionRevisada, setSesionRevisada] = useState(false);
   const [altiusRequierePassword, setAltiusRequierePassword] = useState(true);
+  const [filtroEmpresa, setFiltroEmpresaState] = useState<FiltroEmpresa>('todas');
+
+  // Filtro recordado en este navegador (comodidad; no afecta los datos)
+  useEffect(() => {
+    try {
+      const f = localStorage.getItem(STORAGE_FILTRO_EMPRESA);
+      if (f === 'SpA' || f === 'SA' || f === 'Corporativo' || f === 'sin' || f === 'todas') setFiltroEmpresaState(f);
+    } catch {
+      /* almacenamiento no disponible */
+    }
+  }, []);
+
+  const setFiltroEmpresa = useCallback((f: FiltroEmpresa) => {
+    setFiltroEmpresaState(f);
+    try {
+      localStorage.setItem(STORAGE_FILTRO_EMPRESA, f);
+    } catch {
+      /* almacenamiento no disponible */
+    }
+  }, []);
 
   const recargar = useCallback(async () => {
     const r = await llamar('/api/datos', 'GET');
@@ -123,12 +156,36 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     [revisarSesion],
   );
 
+  // Clasificación vigente: la guardada en Administración; si aún no se ha guardado ninguna, la inicial.
+  const empresasObras = useMemo<Record<string, Empresa>>(() => {
+    const guardadas = datos.config.empresasObras ?? {};
+    return Object.keys(guardadas).length > 0 ? guardadas : EMPRESAS_OBRAS_INICIAL;
+  }, [datos.config.empresasObras]);
+
+  const datosFiltrados = useMemo<Datos>(() => {
+    if (filtroEmpresa === 'todas') return datos;
+    const pasa = (codigo: string) => {
+      const e = empresasObras[obraBase(codigo)] ?? null;
+      return filtroEmpresa === 'sin' ? e === null : e === filtroEmpresa;
+    };
+    return {
+      ...datos,
+      actividades: datos.actividades.filter((a) => pasa(a.obra)),
+      facturas: datos.facturas.filter((f) => pasa(f.obra || f.codigo)),
+    };
+  }, [datos, filtroEmpresa, empresasObras]);
+
   const value = useMemo<Ctx>(() => {
     const upsert = <T extends { id: string }>(lista: T[], item: T) =>
       lista.some((x) => x.id === item.id) ? lista.map((x) => (x.id === item.id ? item : x)) : [...lista, item];
 
     return {
-      datos,
+      datos: datosFiltrados,
+      datosCompletos: datos,
+      filtroEmpresa,
+      setFiltroEmpresa,
+      empresasObras,
+      empresaDeObra: (codigo) => empresasObras[obraBase(codigo)] ?? null,
       cargado,
       rol: rol ?? 'cliente',
       modoEdicion: rol === 'admin',
@@ -168,7 +225,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       },
       nombreObra: (codigo) => datos.config.nombresObras[codigo] || codigo,
     };
-  }, [datos, cargado, rol, salir, recargar, resultado]);
+  }, [datos, datosFiltrados, filtroEmpresa, setFiltroEmpresa, empresasObras, cargado, rol, salir, recargar, resultado]);
 
   // Aún revisando la sesión
   if (!sesionRevisada) return <div className="cargando">Cargando…</div>;

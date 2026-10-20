@@ -60,6 +60,11 @@ export interface ArchivoMeta {
 /** cliente = ALTIUS (visualización) · admin = Creadero (administrador) */
 export type Rol = 'cliente' | 'admin';
 
+/** Empresa ALTIUS a la que pertenece una obra ('Corporativo' = actividades corporativas, aparte de ambas). */
+export type Empresa = 'SpA' | 'SA' | 'Corporativo';
+/** Filtro de empresa activo en la app ('sin' = obras sin clasificar). */
+export type FiltroEmpresa = 'todas' | Empresa | 'sin';
+
 export interface Configuracion {
   cliente: string;
   programa: string;
@@ -67,6 +72,7 @@ export interface Configuracion {
   valorAI: number; // $ por AI (Excel: 160.000)
   fechaCorte: string; // ISO, "Nivel de avance al ..."
   nombresObras: Record<string, string>; // código → nombre completo (editable)
+  empresasObras?: Record<string, Empresa>; // código → empresa (editable en Administración)
 }
 
 export interface Datos {

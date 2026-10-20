@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { useDatos } from '@/components/DataProvider';
 import { Anillo, Cargando, Kpi, Seccion } from '@/components/UI';
 import TablaActividades from '@/components/TablaActividades';
+import { ChipEmpresa } from '@/components/EmpresaUI';
 import TablaFacturas from '@/components/TablaFacturas';
 import { FormActividad, FormFactura, nuevaActividad, nuevaFactura } from '@/components/Formularios';
 import type { Actividad, Factura } from '@/lib/types';
@@ -16,7 +17,8 @@ import { clp, num } from '@/lib/format';
 export default function ObraDetallePage() {
   const params = useParams<{ codigo: string }>();
   const codigo = decodeURIComponent(params.codigo ?? '');
-  const { datos, cargado, nombreObra, modoEdicion } = useDatos();
+  // El detalle usa todos los datos: una obra pertenece a una sola empresa, así no "desaparece" al cambiar el filtro.
+  const { datosCompletos: datos, cargado, nombreObra, modoEdicion } = useDatos();
   const [nuevaAct, setNuevaAct] = useState<Actividad | null>(null);
   const [nuevaFac, setNuevaFac] = useState<Factura | null>(null);
   if (!cargado) return <Cargando />;
@@ -63,7 +65,9 @@ export default function ObraDetallePage() {
         <div className="hero-anillo"><Anillo valor={o.avance} tamano={140} grosor={14} etiqueta="avance obra" /></div>
         <div className="hero-texto">
           <span className="eyebrow">Obra</span>
-          <h2>{nombreObra(o.obra)}{nombreObra(o.obra) !== o.obra && <span className="muted"> ({o.obra})</span>}</h2>
+          <h2>
+            {nombreObra(o.obra)}{nombreObra(o.obra) !== o.obra && <span className="muted"> ({o.obra})</span>} <ChipEmpresa obra={o.obra} />
+          </h2>
           <p>
             {num(o.utilizadoAI)} de {num(o.programadoAI)} AI ejecutadas ({clp(o.utilizadoAI * v)}) en {o.iniciativas} iniciativas.
             {charlasP > 0 && <> {charlasR} de {charlasP} charlas realizadas.</>}

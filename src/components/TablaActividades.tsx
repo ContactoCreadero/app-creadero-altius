@@ -9,6 +9,7 @@ import { clp, fecha, num, pct } from '@/lib/format';
 import { nuevoId, useDatos } from '@/components/DataProvider';
 import { Barra, ChipEstado } from '@/components/UI';
 import { FormActividad } from '@/components/Formularios';
+import { ChipEmpresa } from '@/components/EmpresaUI';
 
 export default function TablaActividades({
   actividades,
@@ -72,6 +73,7 @@ export default function TablaActividades({
                       ) : (
                         <Link className="link-obra" href={`/obras/${encodeURIComponent(a.obra)}`}>{nombreObra(a.obra)}</Link>
                       )}
+                      <div><ChipEmpresa obra={a.obra} /></div>
                     </td>
                   )}
                   <td className="nowrap fechas">

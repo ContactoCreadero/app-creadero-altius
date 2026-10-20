@@ -3,17 +3,21 @@
 import { useEffect, useState } from 'react';
 import { useDatos } from '@/components/DataProvider';
 import { Cargando, Seccion } from '@/components/UI';
-import type { Configuracion } from '@/lib/types';
+import type { Configuracion, Empresa } from '@/lib/types';
 import { obraBase } from '@/lib/calc';
+import { EMPRESAS } from '@/lib/constants';
 import { clp } from '@/lib/format';
 
 export default function AdminPage() {
-  const { datos, cargado, modoEdicion, guardarConfig, recargar, salir } = useDatos();
-  const [c, setC] = useState<Configuracion>(datos.config);
+  // Administración trabaja siempre con todos los datos (sin filtro de empresa)
+  const { datosCompletos: datos, cargado, modoEdicion, guardarConfig, recargar, salir, empresasObras } = useDatos();
+  const configConEmpresas = (): Configuracion => ({ ...datos.config, empresasObras: { ...empresasObras } });
+  const [c, setC] = useState<Configuracion>(configConEmpresas);
   const [ok, setOk] = useState('');
   const [guardando, setGuardando] = useState(false);
 
-  useEffect(() => setC(datos.config), [datos.config]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => setC(configConEmpresas()), [datos.config, empresasObras]);
 
   if (!cargado) return <Cargando />;
   if (!modoEdicion) {
@@ -27,9 +31,27 @@ export default function AdminPage() {
     );
   }
 
-  const obras = [...new Set([...datos.actividades.map((a) => a.obra), ...datos.facturas.map((f) => obraBase(f.obra || f.codigo))])].sort();
+  const conDatos = new Set([...datos.actividades.map((a) => a.obra), ...datos.facturas.map((f) => obraBase(f.obra || f.codigo))]);
+  // Obras con datos + obras ya clasificadas que aún no tienen actividades (ej. ASF, SAP)
+  const obras = [...new Set([...conDatos, ...Object.keys(c.empresasObras ?? {})])].sort();
+  const empresas = c.empresasObras ?? {};
+  const sinClasificar = obras.filter((o) => conDatos.has(o) && !empresas[o]);
   const pagadas = datos.facturas.filter((f) => f.pagada).length;
   const conDocumento = datos.facturas.filter((f) => f.archivo).length;
+
+  const cambiarEmpresa = (obra: string, valor: string) => {
+    const n = { ...empresas };
+    if (valor === 'SpA' || valor === 'SA' || valor === 'Corporativo') n[obra] = valor as Empresa;
+    else delete n[obra];
+    setC({ ...c, empresasObras: n });
+  };
+
+  const cambiarNombre = (obra: string, valor: string) => {
+    const n = { ...c.nombresObras };
+    if (valor.trim()) n[obra] = valor;
+    else delete n[obra];
+    setC({ ...c, nombresObras: n });
+  };
 
   const guardar = async () => {
     setGuardando(true);
@@ -61,22 +83,44 @@ export default function AdminPage() {
         <p className="calculo">Valor actual: 1 AI = <strong>{clp(Number(c.valorAI) || 0)}</strong></p>
       </Seccion>
 
-      <Seccion titulo="Nombres de obras" subtitulo="El Excel solo trae códigos. Si completas el nombre, se mostrará en lugar del código.">
-        <div className="form-grid form-grid-3">
-          {obras.map((o) => (
-            <label key={o} className="campo"><span>{o}</span>
-              <input
-                value={c.nombresObras[o] ?? ''}
-                placeholder={o}
-                onChange={(e) => {
-                  const n = { ...c.nombresObras };
-                  if (e.target.value.trim()) n[o] = e.target.value;
-                  else delete n[o];
-                  setC({ ...c, nombresObras: n });
-                }}
-              />
-            </label>
-          ))}
+      <Seccion
+        titulo="Obras: nombre y empresa"
+        subtitulo="Clasifica cada obra en ALTIUS SpA, ALTIUS S.A. o Corporativo. El nombre completo es opcional: si lo completas, se muestra en lugar del código."
+      >
+        {sinClasificar.length > 0 && (
+          <p className="aviso-sin-clasificar">
+            ⚠️ {sinClasificar.length === 1 ? 'Hay 1 obra' : `Hay ${sinClasificar.length} obras`} con datos sin empresa asignada:{' '}
+            <strong>{sinClasificar.join(', ')}</strong>
+          </p>
+        )}
+        <div className="tabla-scroll">
+          <table className="tabla tabla-obras-admin">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Empresa</th>
+                <th>Nombre completo (opcional)</th>
+                <th>Datos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {obras.map((o) => (
+                <tr key={o} className={!empresas[o] && conDatos.has(o) ? 'fila-alerta' : undefined}>
+                  <td><strong>{o}</strong></td>
+                  <td>
+                    <select value={empresas[o] ?? ''} onChange={(e) => cambiarEmpresa(o, e.target.value)} aria-label={`Empresa de ${o}`}>
+                      <option value="">Sin clasificar</option>
+                      {EMPRESAS.map((e) => <option key={e.id} value={e.id}>{e.nombreLargo}</option>)}
+                    </select>
+                  </td>
+                  <td>
+                    <input value={c.nombresObras[o] ?? ''} placeholder={o} onChange={(e) => cambiarNombre(o, e.target.value)} aria-label={`Nombre de ${o}`} />
+                  </td>
+                  <td className="muted small">{conDatos.has(o) ? 'Con actividades o facturas' : 'Aún sin datos'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </Seccion>
 

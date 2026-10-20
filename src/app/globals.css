@@ -830,3 +830,38 @@ select:focus, input:focus { outline: 2px solid var(--rojo-suave); border-color: 
 @media print {
   .barra-empresa { display: none !important; }
 }
+
+/* v7 · Balance por obra agrupado y ordenable */
+.controles-balance { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+.check-agrupar { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
+.check-agrupar input { width: 16px; height: 16px; accent-color: var(--rojo); }
+.orden-balance { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--gris); white-space: nowrap; }
+.orden-balance select { padding: 5px 8px; font-size: 0.85rem; }
+.th-orden button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.th-orden.num button { width: 100%; text-align: right; }
+.th-orden button:hover { color: var(--rojo-oscuro); }
+.th-orden.activo { color: var(--carbon); }
+.th-flecha { color: var(--rojo); }
+.tabla-balance .fila-grupo td {
+  background: var(--fondo);
+  font-weight: 700;
+  color: var(--carbon);
+  border-top: 2px solid var(--borde);
+  padding-top: 10px;
+}
+.tabla-balance .fila-subtotal td { background: #faf8f6; font-weight: 600; font-size: 0.8rem; color: var(--gris); }
+.tabla-balance tbody:hover .fila-grupo td { background: var(--fondo); }
+@media (max-width: 720px) {
+  .tarjeta-cabecera:has(.controles-balance) { flex-direction: column; }
+  .controles-balance { justify-content: flex-start; }
+}
